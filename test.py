@@ -59,6 +59,21 @@ def choose_pokemon():
     response = requests.get(new_pokemon_url).json()
     print(response)
 
+def choose_item():
+    item = input("Choose an Item: ").lower().replace(" ", "-")
+    response = requests.get(URL + "item").json()
+
+    for result in response["results"]:
+        if result["name"] == item:
+            item_url = result["url"]
+            break
+    else:
+        print("Invalid Item name.")
+        choose_item()
+        
+    response = requests.get(item_url).json()
+    print(response)
+
 def main():
     category = overview()
     if category == "pokemon":
@@ -67,6 +82,8 @@ def main():
         choose_ability()
     elif category == "berry":
         choose_berry()
+    elif category == "item":
+        choose_item()
     else:
         print("Unknown category")
 
