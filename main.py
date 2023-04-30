@@ -51,7 +51,21 @@ def choose_ability():
         if event == sg.WINDOW_CLOSED:
             break
         ability = values[0].lower()
-        response = requests.get(URL + "ability").json()
+        ability_url = None
+        next_url = URL + "ability"
+        while next_url is not None:
+            response = requests.get(next_url).json()
+            for result in response["results"]:
+                if result["name"] == ability:
+                    ability_url = result["url"]
+                    break
+            else:
+                next_url = response["next"]
+                continue
+            break
+        else:
+            sg.popup("Invalid ability name.")
+            continue
 
         # search through the list of abilities
         for result in response["results"]:
@@ -101,15 +115,20 @@ def choose_ability():
 
         window.close()
         layout = [[sg.Text("Name: " + name)],
-                  [sg.Text("Effect entry: " + effect)],
+                  [sg.Text("Effect entry: ")],
+                  [sg.Multiline(effect, size=(80, 10), disabled=True, autoscroll=True )],
                   [sg.Text("Effect changes:\n" + effect_changes)],
                   [sg.Text("Flavor text:\n" + flavor_text)],
                   [sg.Text("Pokemon who can have the ability:")],
-                  [sg.Text(pokemon_list)],
+                  [sg.Multiline(pokemon_list, key='-POKELIST-', size=(50, 20), enable_events=True, disabled=True)],
                   [sg.Button("OK")]]
         window = sg.Window(name, layout, finalize=True)
         window.TKroot.focus_force()
-        event, values = window.read()
+        while True:
+            event, values = window.read()
+            if event == "OK" or event == sg.WINDOW_CLOSED:
+                break
+
         window.close()
 
 
@@ -177,6 +196,8 @@ def choose_item():
                   [sg.Button("OK")]]
         window = sg.Window(name, layout, finalize=True,
                            icon='./images/icon.ico')
+        window.finalize()
+        window.maximize()
         window.TKroot.focus_force()
         event, values = window.read()
         window.close()
