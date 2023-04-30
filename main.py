@@ -8,7 +8,7 @@ def overview():
     layout = [[sg.Text("Using a keyword, what are you looking for?")],
               [sg.InputText()],
               [sg.Submit()]]
-    window = sg.Window("PokeInfo", layout)
+    window = sg.Window("PokeInfo", icon='./images/icon.ico').Layout(layout)
 
     option_selected = False  # flag to track if a valid option has been selected
 
@@ -43,7 +43,8 @@ def choose_ability():
     layout = [[sg.Text("Choose an Ability:")],
               [sg.InputText()],
               [sg.Submit()]]
-    window = sg.Window("Choose Ability", layout)
+    window = sg.Window(
+        "Choose Ability", icon='./images/icon.ico').Layout(layout)
 
     while True:
         event, values = window.read()
@@ -96,7 +97,7 @@ def choose_ability():
         pokemon_list = ""
         for entry in response["pokemon"]:
             if entry:
-                pokemon_list += entry["pokemon"]["name"] + "\n"
+                pokemon_list += entry["pokemon"]["name"].capitalize() + "\n"
 
         window.close()
         layout = [[sg.Text("Name: " + name)],
@@ -116,19 +117,25 @@ def choose_item():
     layout = [[sg.Text("Choose an Item")],
               [sg.InputText()],
               [sg.Submit()]]
-    window = sg.Window("Choose Item", layout)
+    window = sg.Window("Choose Item", icon='./images/icon.ico').Layout(layout)
 
     while True:
         event, values = window.read()
         if event == sg.WINDOW_CLOSED:
             break
         item = values[0].lower().replace(" ", "-")
-        response = requests.get(URL + "item").json()
-
-        for result in response["results"]:
-            if result["name"] == item:
-                item_url = result["url"]
-                break
+        item_url = None
+        next_url = URL + "item"
+        while next_url is not None:
+            response = requests.get(next_url).json()
+            for result in response["results"]:
+                if result["name"] == item:
+                    item_url = result["url"]
+                    break
+            else:
+                next_url = response["next"]
+                continue
+            break
         else:
             sg.popup("Invalid Item name.")
             continue
@@ -152,40 +159,78 @@ def choose_item():
                 break
 
         cost = response["cost"]
+        image = response["sprites"]["default"]
+        name = response["name"]  # move this line up
+
         window.close()
-        name = response["name"]
+
         layout = [[sg.Text("Name: " + name.replace(" ", "-").capitalize())],
+                  # use requests.get().content here
+                  [sg.Image(requests.get(image).content)],
                   [sg.Text("Cost: " + str(cost))],
-                  [sg.Text("Description: \n" + flavor_text)],
+                  [sg.Text("Description: " + flavor_text.replace("\n", " "))],
                   [sg.Text("Attributes: " + "".join(attributes_str))],
                   [sg.Text("Category: " +
                            category_name.replace(" ", "-").capitalize())],
                   [sg.Text("Effect Entry: \n" + effect)],
                   [sg.Text("Short Effect: \n" + short_effect)],
                   [sg.Button("OK")]]
-        window = sg.Window(name, layout, finalize=True)
+        window = sg.Window(name, layout, finalize=True,
+                           icon='./images/icon.ico')
         window.TKroot.focus_force()
         event, values = window.read()
         window.close()
 
 
 def choose_berry():
-    berry = input("Choose a Berry: ").lower()
-    response = requests.get(URL + "berry").json()
+    layout = [[sg.Text("Choose a Berry")],
+              [sg.InputText()],
+              [sg.Submit()]]
+    window = sg.Window("Choose Berry", icon='./images/icon.ico').Layout(layout)
 
-    # Search through the list of berries for the one the user chose
-    for result in response["results"]:
-        print(result)
-        if result["name"] == berry:
-            berry_url = result["url"]
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED:
             break
-    else:
-        print("Invalid berry name.")
-        choose_berry()
-        return
+        berry = values[0].lower().replace(" ", "-")
+        response = requests.get(URL + "berry").json()
 
-    response = requests.get(berry_url).json()
-    print(response.effect_changes.json())
+        # Search through the list of berries for the one the user chose
+        for result in response["results"]:
+            if result["name"] == berry:
+                berry_url = result["url"]
+                break
+        else:
+            sg.popup("Invalid berry name.")
+            continue
+
+        response = requests.get(berry_url).json()
+
+        name = response["name"].capitalize()
+        firmness = response["firmness"]["name"].capitalize()
+        growth_time = str(response["growth_time"])
+        max_harvest = str(response["max_harvest"])
+        natural_gift_power = str(response["natural_gift_power"])
+        natural_gift_type = response["natural_gift_type"]["name"].capitalize()
+
+        for result in response["flavors"]:
+            if result["potency"] > 0:
+                flavor = result["flavor"]["name"].capitalize()
+                potency = result["potency"]
+                print(flavor)
+
+        window.close()
+
+        layout = [[sg.Text("Name: " + name)],
+                  [sg.Text("Firmness: " + firmness)],
+                  [sg.Text("Flavor: " + flavor + " Potency: " + str(potency))],
+                  [sg.Text("Growth time: " + growth_time)],
+                  [sg.Text("Max Harvest: " + max_harvest)],
+                  [sg.Text("Natural Gift Type: " + natural_gift_type)],
+                  [sg.Text("Natural Gift Power: " + natural_gift_power)],
+                  ]
+        window = sg.Window(
+            name, layout, icon='./images/icon.ico', finalize=True)
 
 
 def choose_pokemon():
