@@ -116,11 +116,13 @@ def choose_ability():
         window.close()
         layout = [[sg.Text("Name: " + name)],
                   [sg.Text("Effect entry: ")],
-                  [sg.Multiline(effect, size=(80, 10), disabled=True, autoscroll=True )],
+                  [sg.Multiline(effect, size=(80, 10),
+                                disabled=True, autoscroll=True)],
                   [sg.Text("Effect changes:\n" + effect_changes)],
                   [sg.Text("Flavor text:\n" + flavor_text)],
                   [sg.Text("Pokemon who can have the ability:")],
-                  [sg.Multiline(pokemon_list, key='-POKELIST-', size=(50, 20), enable_events=True, disabled=True)],
+                  [sg.Multiline(pokemon_list, key='-POKELIST-',
+                                size=(50, 20), enable_events=True, disabled=True)],
                   [sg.Button("OK")]]
         window = sg.Window(name, layout, finalize=True)
         window.TKroot.focus_force()
@@ -213,14 +215,21 @@ def choose_berry():
         event, values = window.read()
         if event == sg.WINDOW_CLOSED:
             break
-        berry = values[0].lower().replace(" ", "-")
-        response = requests.get(URL + "berry").json()
 
+        berry = values[0].lower().replace(" ", "-")
+        next_url = URL + "berry"
+        berry_url = None
         # Search through the list of berries for the one the user chose
-        for result in response["results"]:
-            if result["name"] == berry:
-                berry_url = result["url"]
-                break
+        while next_url is not None:
+            response = requests.get(next_url).json()
+            for result in response["results"]:
+                if result["name"] == berry:
+                    berry_url = result["url"]
+                    break
+            else:
+                next_url = response["next"]
+                continue
+            break
         else:
             sg.popup("Invalid berry name.")
             continue
@@ -233,18 +242,18 @@ def choose_berry():
         max_harvest = str(response["max_harvest"])
         natural_gift_power = str(response["natural_gift_power"])
         natural_gift_type = response["natural_gift_type"]["name"].capitalize()
-
+        flavor_with_potency = []
         for result in response["flavors"]:
             if result["potency"] > 0:
                 flavor = result["flavor"]["name"].capitalize()
                 potency = result["potency"]
-                print(flavor)
+                flavor_with_potency.append(f"{flavor} (potency: {potency})")
 
         window.close()
 
         layout = [[sg.Text("Name: " + name)],
                   [sg.Text("Firmness: " + firmness)],
-                  [sg.Text("Flavor: " + flavor + " Potency: " + str(potency))],
+                  [sg.Text("Flavor: " + ",".join(flavor_with_potency))],
                   [sg.Text("Growth time: " + growth_time)],
                   [sg.Text("Max Harvest: " + max_harvest)],
                   [sg.Text("Natural Gift Type: " + natural_gift_type)],
@@ -255,11 +264,81 @@ def choose_berry():
 
 
 def choose_pokemon():
+    layout = [[sg.Text("Choose a Pokemon")],
+              [sg.InputText()],
+              [sg.Submit()]]
+    window = sg.Window(
+        "Choose Pokemon", icon='./images/icon.ico').Layout(layout)
+
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED:
+            break
+        pokemon = values[0].lower().replace(" ", "-")
+
     # url is pokemon based abd not number based. Can take pokemon from input
-    pokemon = input("Choose a pokemon: ").lower()
-    new_pokemon_url = URL + "pokemon/" + pokemon
-    response = requests.get(new_pokemon_url).json()
-    print(response)
+    # name(done)
+    # abilities(ability name url) take url and grab description from url
+    # exp exp
+    # held items []
+    # moves []
+    # sprite []
+    # number []
+    # type []
+    # stats []
+        # name
+        new_pokemon_url = URL + "pokemon/" + pokemon
+        response = requests.get(new_pokemon_url)
+        if response.status_code == 404:
+            sg.popup("Invalid Pokemon name. Please try again.")
+            break
+        response = requests.get(new_pokemon_url).json()
+        # sprite
+        img = response["sprites"]["front_default"]
+        # number
+        number = str(response["id"])
+        # held items
+        held_items = []
+        for i in response["held_items"]:
+            held_items.append(i["item"]["name"])
+        if len(held_items) == 0:
+            held_item_str = None
+        else: 
+            held_item_str = ", ".join(held_items)
+        # type
+        terp = []
+        for result in response["types"]:
+            terp.append(result["type"]["name"])
+        # stats
+        base_stats = []
+        for stats in response["stats"]:
+            stat = str(stats["base_stat"])
+            if isinstance(stats["stat"], dict):
+                stat_name = stats["stat"].get("name")
+                if stat_name is not None:
+                    base_stats.append(f"{stat_name}: {stat}\n")
+        # moves
+
+        exp = response["base_experience"]
+        name = response["name"].capitalize()
+    # evolution (species[url]) (evolution_chain[url])
+    # egg groups
+    # flavor text
+    #
+
+        window.close()
+
+        layout = [[sg.Text(name + " " + "\nPokeNum: " + number)],
+                  [sg.Image(requests.get(img).content)],
+                  [sg.Text("Types: " + ", ".join(terp).title())],
+                  [sg.Text("Base Experience: " + str(exp))],
+                  [sg.Text("Base Stats: \n" + "\n".join(base_stats).title())],
+                  [sg.Text("Held Items: " + (held_item_str or "None"))]]
+        window = sg.Window(
+            name, layout, icon='./images/icon.ico', finalize=True)
+    window.close()
+
+    
 
 
 def choose_move():
@@ -283,7 +362,6 @@ def main():
         category, exit_app = overview()
         if exit_app:
             break
-
         if category == "ability":
             choose_ability()
         elif category == "item":
@@ -293,7 +371,7 @@ def main():
         elif category == "berry":
             choose_berry()
 
-    sg.popup("Goodbye!")
+    sg.popup("Goodbye!",icon='./images/icon.ico' )
 
 
 if __name__ == "__main__":
