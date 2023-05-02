@@ -280,12 +280,12 @@ def choose_pokemon():
     # name(done)
     # abilities(ability name url) take url and grab description from url
     # exp exp
-    # held items []
+    # held items [done]
     # moves []
-    # sprite []
-    # number []
-    # type []
-    # stats []
+    # sprite [done]
+    # number [done]
+    # type [done]
+    # stats [done]
         # name
         new_pokemon_url = URL + "pokemon/" + pokemon
         response = requests.get(new_pokemon_url)
@@ -318,24 +318,42 @@ def choose_pokemon():
                 if stat_name is not None:
                     base_stats.append(f"{stat_name}: {stat}\n")
         # moves
+ 
+        # moves
+        moves = {}
+        for i in response["moves"]:
+            move_name = i["move"]["name"]
+            move_data = []
+            for j in i["version_group_details"]:
+                lvl_available = j["level_learned_at"]
+                method = j["move_learn_method"]["name"]
+                game_version = j["version_group"]["name"]
+                move_data.append((lvl_available, method, game_version))
+            moves[move_name] = move_data
+
+        # format moves for display
+        moves_text = ""
+        for move, data in moves.items():
+            moves_text += f"{move}:\n"
+            for level, method, game_version in data:
+                moves_text += f"    Level: {level}\n    Method: {method}\n    Version: {game_version}\n"
+            moves_text += "\n"
 
         exp = response["base_experience"]
         name = response["name"].capitalize()
-    # evolution (species[url]) (evolution_chain[url])
-    # egg groups
-    # flavor text
-    #
 
         window.close()
 
-        layout = [[sg.Text(name + " " + "\nPokeNum: " + number)],
-                  [sg.Image(requests.get(img).content)],
-                  [sg.Text("Types: " + ", ".join(terp).title())],
-                  [sg.Text("Base Experience: " + str(exp))],
-                  [sg.Text("Base Stats: \n" + "\n".join(base_stats).title())],
-                  [sg.Text("Held Items: " + (held_item_str or "None"))]]
-        window = sg.Window(
-            name, layout, icon='./images/icon.ico', finalize=True)
+        layout = [
+            [sg.Text(name + " " + "\nPokeNum: " + number)],
+            [sg.Image(requests.get(img).content)],
+            [sg.Text("Types: " + ", ".join(terp).title())],
+            [sg.Text("Base Experience: " + str(exp))],
+            [sg.Text("Base Stats: \n" + "\n".join(base_stats).title())],
+            [sg.Text("Held Items: " + (held_item_str or "None"))],
+            [sg.Multiline("Moves: \n\n" + moves_text, size=(50, 20))]
+        ]
+        window = sg.Window(name, layout, icon='./images/icon.ico', finalize=True)
     window.close()
 
     
