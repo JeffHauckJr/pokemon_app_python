@@ -287,7 +287,7 @@ def choose_pokemon():
     # type [done]
     # stats [done]
         # name
-        new_pokemon_url = URL + "pokemon/" + pokemon
+        new_pokemon_url = URL + "pokemon/" + pokemon + "/"
         response = requests.get(new_pokemon_url)
         if response.status_code == 404:
             sg.popup("Invalid Pokemon name. Please try again.")
@@ -334,7 +334,7 @@ def choose_pokemon():
         # format moves for display
         moves_text = ""
         for move, data in moves.items():
-            moves_text += f"{move}:\n"
+            moves_text += f"{move.capitalize()}:\n"
             for level, method, game_version in data:
                 moves_text += f"    Level: {level}\n    Method: {method}\n    Version: {game_version}\n"
             moves_text += "\n"
@@ -342,22 +342,39 @@ def choose_pokemon():
         exp = response["base_experience"]
         name = response["name"].capitalize()
 
+        species_url = response["species"]["url"]
+        species_result = requests.get(species_url).json()
+
+        #details 
+        for i in species_result["flavor_text_entries"]:
+            if i["language"]["name"] == "en":
+                details = i["flavor_text"]
+        #egg details
+        egg_group = []        
+        for i in species_result["egg_groups"]:
+            egg_group.append(i["name"])
+            print(len(i))
+        egg_group_str = ", ".join(egg_group).title()
+
+        #evolution chain
+        evolution_chain_url = species_result["evolution_chain"]["url"]
+        evolution_response = requests.get(evolution_chain_url)
+
         window.close()
 
         layout = [
             [sg.Text(name + " " + "\nPokeNum: " + number)],
             [sg.Image(requests.get(img).content)],
             [sg.Text("Types: " + ", ".join(terp).title())],
+            [sg.Text("Details: " + details)],
+            [sg.Text("Egg Group: " + egg_group_str)],
             [sg.Text("Base Experience: " + str(exp))],
             [sg.Text("Base Stats: \n" + "\n".join(base_stats).title())],
             [sg.Text("Held Items: " + (held_item_str or "None"))],
-            [sg.Multiline("Moves: \n\n" + moves_text, size=(50, 20))]
+            [sg.Multiline("Moves: \n\n" + moves_text, size=(40, 20))]
         ]
         window = sg.Window(name, layout, icon='./images/icon.ico', finalize=True)
     window.close()
-
-    
-
 
 def choose_move():
     move = input("Choose a move: ").lower().replace(" ", "-")
