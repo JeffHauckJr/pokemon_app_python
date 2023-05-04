@@ -27,10 +27,12 @@ def overview():
             if key in welcome:
                 window.close()
                 return key, False  # indicate that a valid option has been selected
+            
+        list = ["Ability", "Berry", "Item", "Moves", "Pokemon"]
 
         sg.popup(
-            "No matching keywords, please select one of the following keywords: " + str(keys))
-        category = sg.popup_get_text("Please select a category. ")
+            "No matching keywords, please select one of the following keywords: " + ", ".join(list), icon="./images/icon.ico")
+        category = sg.popup_get_text("Please select a category. ", icon="./images/icon.ico")
         if category is None:  # user clicked Cancel on the popup
             window.close()
             return None, True  # indicate that the user wants to exit the app
@@ -64,7 +66,7 @@ def choose_ability():
                 continue
             break
         else:
-            sg.popup("Invalid ability name.")
+            sg.popup("Invalid ability name.", icon="./images/icon.ico")
             continue
 
         # search through the list of abilities
@@ -73,7 +75,7 @@ def choose_ability():
                 ability_url = result["url"]
                 break
         else:
-            sg.popup("Invalid ability name.")
+            sg.popup("Invalid ability name.", icon="./images/icon.ico")
             continue
 
         response = requests.get(ability_url).json()
@@ -124,7 +126,7 @@ def choose_ability():
                   [sg.Multiline(pokemon_list, key='-POKELIST-',
                                 size=(50, 20), enable_events=True, disabled=True)],
                   [sg.Button("OK")]]
-        window = sg.Window(name, layout, finalize=True)
+        window = sg.Window(name, layout, icon="./images/icon.ico", finalize=True)
         window.TKroot.focus_force()
         while True:
             event, values = window.read()
@@ -158,7 +160,7 @@ def choose_item():
                 continue
             break
         else:
-            sg.popup("Invalid Item name.")
+            sg.popup("Invalid Item name.", icon="./images/icon.ico")
             continue
 
         response = requests.get(item_url).json()
@@ -231,7 +233,7 @@ def choose_berry():
                 continue
             break
         else:
-            sg.popup("Invalid berry name.")
+            sg.popup("Invalid berry name.", icon="./images/icon.ico")
             continue
 
         response = requests.get(berry_url).json()
@@ -290,7 +292,7 @@ def choose_pokemon():
         new_pokemon_url = URL + "pokemon/" + pokemon + "/"
         response = requests.get(new_pokemon_url)
         if response.status_code == 404:
-            sg.popup("Invalid Pokemon name. Please try again.")
+            sg.popup("Invalid Pokemon name. Please try again.", icon="./images/icon.ico")
             break
         response = requests.get(new_pokemon_url).json()
         # sprite
@@ -358,9 +360,13 @@ def choose_pokemon():
 
         #evolution chain
         evolution_chain_url = species_result["evolution_chain"]["url"]
-        evolution_response = requests.get(evolution_chain_url)
+        evolution_response = requests.get(evolution_chain_url).json()
 
-        window.close()
+        # get evolution chain
+        evolution_chain = evolution_response["chain"]
+
+
+        # add evolutions layout to main layout
 
         layout = [
             [sg.Text(name + " " + "\nPokeNum: " + number)],
