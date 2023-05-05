@@ -19,6 +19,7 @@ def overview():
             return None, True  # indicate that the user wants to exit the app
 
         welcome = values[0].lower()
+        print(welcome)
         response = requests.get(URL).json()
 
         keys = [key.split()[0] for key in response.keys()]
@@ -27,12 +28,13 @@ def overview():
             if key in welcome:
                 window.close()
                 return key, False  # indicate that a valid option has been selected
-            
+
         list = ["Ability", "Berry", "Item", "Moves", "Pokemon"]
 
         sg.popup(
             "No matching keywords, please select one of the following keywords: " + ", ".join(list), icon="./images/icon.ico")
-        category = sg.popup_get_text("Please select a category. ", icon="./images/icon.ico")
+        category = sg.popup_get_text(
+            "Please select a category. ", icon="./images/icon.ico")
         if category is None:  # user clicked Cancel on the popup
             window.close()
             return None, True  # indicate that the user wants to exit the app
@@ -126,7 +128,8 @@ def choose_ability():
                   [sg.Multiline(pokemon_list, key='-POKELIST-',
                                 size=(50, 20), enable_events=True, disabled=True)],
                   [sg.Button("OK")]]
-        window = sg.Window(name, layout, icon="./images/icon.ico", finalize=True)
+        window = sg.Window(
+            name, layout, icon="./images/icon.ico", finalize=True)
         window.TKroot.focus_force()
         while True:
             event, values = window.read()
@@ -292,7 +295,8 @@ def choose_pokemon():
         new_pokemon_url = URL + "pokemon/" + pokemon + "/"
         response = requests.get(new_pokemon_url)
         if response.status_code == 404:
-            sg.popup("Invalid Pokemon name. Please try again.", icon="./images/icon.ico")
+            sg.popup("Invalid Pokemon name. Please try again.",
+                     icon="./images/icon.ico")
             break
         response = requests.get(new_pokemon_url).json()
         # sprite
@@ -305,7 +309,7 @@ def choose_pokemon():
             held_items.append(i["item"]["name"])
         if len(held_items) == 0:
             held_item_str = None
-        else: 
+        else:
             held_item_str = ", ".join(held_items)
         # type
         terp = []
@@ -320,7 +324,7 @@ def choose_pokemon():
                 if stat_name is not None:
                     base_stats.append(f"{stat_name}: {stat}\n")
         # moves
- 
+
         # moves
         moves = {}
         for i in response["moves"]:
@@ -347,26 +351,26 @@ def choose_pokemon():
         species_url = response["species"]["url"]
         species_result = requests.get(species_url).json()
 
-        #details 
+        # details
         for i in species_result["flavor_text_entries"]:
             if i["language"]["name"] == "en":
                 details = i["flavor_text"]
-        #egg details
-        egg_group = []        
+        # egg details
+        egg_group = []
         for i in species_result["egg_groups"]:
             egg_group.append(i["name"])
             print(len(i))
         egg_group_str = ", ".join(egg_group).title()
 
-        #evolution chain
+        # evolution chain
         evolution_chain_url = species_result["evolution_chain"]["url"]
         evolution_response = requests.get(evolution_chain_url).json()
 
         # get evolution chain
         evolution_chain = evolution_response["chain"]
 
-
         # add evolutions layout to main layout
+        window.close()
 
         layout = [
             [sg.Text(name + " " + "\nPokeNum: " + number)],
@@ -379,24 +383,63 @@ def choose_pokemon():
             [sg.Text("Held Items: " + (held_item_str or "None"))],
             [sg.Multiline("Moves: \n\n" + moves_text, size=(40, 20))]
         ]
-        window = sg.Window(name, layout, icon='./images/icon.ico', finalize=True)
+        window = sg.Window(
+            name, layout, icon='./images/icon.ico', finalize=True)
     window.close()
 
+
 def choose_move():
-    move = input("Choose a move: ").lower().replace(" ", "-")
-    response = requests.get(URL + "move").json()
-
-    for result in response["results"]:
-        if result["name"] == move:
-            move_url = result["url"]
+    print("This is firing")
+    layout = [[sg.Text("Choose a Move")],
+              [sg.InputText()],
+              [sg.Submit()]]
+    window = sg.Window("Choose a Move", icon="./images/icon.ico").Layout(layout)
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED:
             break
-    else:
-        print("Invalid move name.")
-        choose_move()
+        move = values[0].lower().replace(" ", "-")
 
-    response = requests.get(move_url).json()
-    print(response)
+        
+        move_url = None
+        next_url = URL + "move"
 
+        while next_url is not None:
+            response = requests.get(next_url).json()
+            for result in response["results"]:
+                if result["name"] == move:
+                    move_url = result["url"]
+                    break
+            else:
+                next_url = response["next"]
+                continue
+            break
+        else:
+            sg.popup("Invalid move name.", icon="./images/icon.ico")
+            continue
+
+        response = requests.get(move_url).json()
+        name = response["name"]
+        print(response)
+
+        #learn by pokemon
+        #details
+        #effect
+        #pp
+        #power
+        #meta
+        #type
+        #mchines
+
+
+        window.close()
+
+        layout = [[sg.Text("Name: " + name)]]
+
+        window = sg.Window("Move Info", layout=layout, icon="./images/icon.ico")
+
+
+    window.close()
 
 def main():
     while True:
@@ -411,8 +454,10 @@ def main():
             choose_pokemon()
         elif category == "berry":
             choose_berry()
+        elif category == "move":
+            choose_move()
 
-    sg.popup("Goodbye!",icon='./images/icon.ico' )
+    sg.popup("Goodbye!", icon='./images/icon.ico')
 
 
 if __name__ == "__main__":
